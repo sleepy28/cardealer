@@ -10,7 +10,7 @@
         
         
         .login-image {
-            background-image: url("{{ asset('img/login-bg.png') }}"); 
+            background-image: url("{{ asset('img/dealer_login.webp') }}"); 
             background-size: cover;
             background-position: center;
             height: 100vh;
@@ -61,10 +61,10 @@
         <div class="col-md-5 col-lg-4 login-form-container">
             <div class="login-box text-center">
                 
-                <img src="{{ asset('img/logo.png') }}" alt="Logo" class="logo-img">
+                <img src="{{ asset('img/dealer_logo.webp') }}" alt="Logo" class="logo-img">
                 
                 <div class="server-name">Nusa V</div>
-                <div class="company-name">Dealer Management System</div>
+                <div class="company-name">Mounte Carlo Management System</div>
 
                 @if($errors->any())
                     <div class="alert alert-danger text-start py-2" style="font-size: 0.9rem;">

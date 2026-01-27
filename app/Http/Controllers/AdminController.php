@@ -104,34 +104,42 @@ class AdminController extends Controller
     {
         $user = \App\Models\User::findOrFail($id);
 
-        if (auth()->user()->role === 'admin') {
+
+        if (auth()->user()->role === 'admin' || auth()->user()->role === 'finance') {
             
             $request->validate([
-                'name'     => 'required',
-                'username' => 'required|unique:users,username,'.$id,
-                
+                'name'     => 'required|string|max:255',
+                'username' => 'required|string|max:50|unique:users,username,'.$id,
                 'role'     => 'required|string', 
                 'status'   => 'required', 
             ]);
 
             $user->name = $request->name;
             $user->username = $request->username;
-            $user->role = $request->role;
-         
+            
+
+            if (auth()->user()->role === 'admin') {
+
+                $user->role = $request->role;
+            } 
+            elseif (auth()->user()->role === 'finance') {
+
+                $allowedRoles = ['recruit', 'showroom_sales', 'business_sales', 'user'];
+                
+                if (in_array($request->role, $allowedRoles)) {
+                    $user->role = $request->role;
+                }
+            }
+
             if ($request->filled('password')) {
                 $user->password = Hash::make($request->password);
             }
+
+            $user->is_on_duty = $request->status;
         } 
         else {
-          
-            $request->validate([
-                'status' => 'required',
-            ]);
-            
-        
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengedit data.');
         }
-
-        $user->is_on_duty = $request->status;
 
         $user->save();
 

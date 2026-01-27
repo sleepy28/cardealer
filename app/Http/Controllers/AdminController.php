@@ -12,23 +12,18 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-   
         $totalAnggota = User::where('role', '!=', 'admin')->count();
         
-   
         $startOfWeek = Carbon::now()->startOfWeek();
         $endOfWeek   = Carbon::now()->endOfWeek();
         $totalUnitMingguan = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek])->count();
  
         $totalInvoice = Sale::sum('sale_price');
 
-   
         $totalGaji = Sale::sum('commission');
 
-  
         $recentSales = Sale::with('user')->latest()->take(10)->get();
 
-    
         $topEmployees = User::where('role', 'user')
                         ->withSum('sales', 'commission')
                         ->withCount('sales')
@@ -46,11 +41,8 @@ class AdminController extends Controller
         ));
     }
 
- 
-
     public function employees()
     {
-  
         $users = \App\Models\User::latest()->get(); 
         
         return view('admin.employees', compact('users'));
@@ -59,30 +51,48 @@ class AdminController extends Controller
     public function storeEmployee(Request $request)
     {
      
-        $roleToAssign = $request->role;
-
-     
-        if (auth()->user()->role !== 'admin') {
-            $roleToAssign = 'user';
-        }
+        
+ 
+        $requestedRole = $request->role;
+        $roleToAssign = 'user';  
 
  
+        if (auth()->user()->role === 'admin') {
+  
+            $roleToAssign = $requestedRole;
+        } 
+        elseif (auth()->user()->role === 'finance') {
+       
+            $allowedRoles = ['recruit', 'showroom_sales', 'business_sales'];
+
+            if (in_array($requestedRole, $allowedRoles)) {
+                $roleToAssign = $requestedRole;
+            } else {
+                
+                $roleToAssign = 'user';
+            }
+        } 
+        else {
+             
+            $roleToAssign = 'user';
+        }
+        
+   
+
         $request->validate([
             'citizen_id' => 'required|string|unique:users,citizen_id',
             'name'       => 'required|string|max:255',
             'username'   => 'required|string|max:50|unique:users,username',
             'password'   => 'required|string|min:6',
-         
             'role'       => 'sometimes|string' 
         ]);
 
-  
         User::create([
             'citizen_id' => $request->citizen_id,
             'name'       => $request->name,
             'username'   => $request->username,
             'password'   => Hash::make($request->password),
-            'role'       => $roleToAssign,  
+            'role'       => $roleToAssign,   
             'status'     => 'active',
             'is_on_duty' => false,  
         ]);
@@ -94,18 +104,16 @@ class AdminController extends Controller
     {
         $user = \App\Models\User::findOrFail($id);
 
- 
         if (auth()->user()->role === 'admin') {
-            
             
             $request->validate([
                 'name'     => 'required',
                 'username' => 'required|unique:users,username,'.$id,
-                'role'     => 'required|in:admin,user,finance',
+                
+                'role'     => 'required|string', 
                 'status'   => 'required', 
             ]);
 
-         
             $user->name = $request->name;
             $user->username = $request->username;
             $user->role = $request->role;
@@ -114,17 +122,15 @@ class AdminController extends Controller
                 $user->password = Hash::make($request->password);
             }
         } 
-        
- 
         else {
-            
+          
             $request->validate([
                 'status' => 'required',
             ]);
-          
+            
+        
         }
 
- 
         $user->is_on_duty = $request->status;
 
         $user->save();
@@ -134,7 +140,6 @@ class AdminController extends Controller
 
     public function deleteEmployee($id)
     {
-  
         if (auth()->user()->role !== 'admin') {
             return redirect()->back()->with('error', 'Akses Ditolak: Hanya Administrator yang berhak menghapus data karyawan!');
         }

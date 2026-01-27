@@ -207,9 +207,20 @@
                         
                         <td class="text-end pe-4">
                             
-                            <button class="btn btn-sm btn-light border shadow-sm me-1 text-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $user->id }}" style="border-radius: 6px;">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                         
+                            @php
+                                $canEdit = auth()->user()->role === 'admin' || (auth()->user()->role === 'finance' && $user->role !== 'admin');
+                            @endphp
+
+                            @if($canEdit)
+                                <button class="btn btn-sm btn-light border shadow-sm me-1 text-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $user->id }}" style="border-radius: 6px;">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            @else
+                                <button class="btn btn-sm btn-light border me-1 text-muted" disabled style="border-radius: 6px; opacity: 0.5; cursor: not-allowed;">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                            @endif
                             
                             
                             @if(auth()->user()->role === 'admin' && $user->id != auth()->id())
@@ -247,13 +258,17 @@
                     @method('PUT')
                     <div class="modal-body bg-light bg-opacity-50 py-4">
                         
+                        @php
+                            // Finance tidak boleh mengedit data Admin
+                            $isEditable = auth()->user()->role === 'admin' || (auth()->user()->role === 'finance' && $user->role !== 'admin');
+                        @endphp
                         
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase text-muted">Nama Lengkap</label>
                             <input type="text" name="name" class="form-control shadow-sm" 
                                    value="{{ $user->name }}" 
                                    required 
-                                   {{ auth()->user()->role !== 'admin' ? 'disabled bg-light' : '' }}>
+                                   {{ !$isEditable ? 'disabled bg-light' : '' }}>
                         </div>
 
                         
@@ -262,7 +277,7 @@
                             <input type="text" name="username" class="form-control shadow-sm" 
                                    value="{{ $user->username }}" 
                                    required
-                                   {{ auth()->user()->role !== 'admin' ? 'disabled bg-light' : '' }}>
+                                   {{ !$isEditable ? 'disabled bg-light' : '' }}>
                         </div>
 
                         <div class="row">
@@ -270,22 +285,29 @@
                             <div class="col-6 mb-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Jabatan / Role</label>
                                 <select name="role" class="form-select shadow-sm" 
-                                        {{ auth()->user()->role !== 'admin' ? 'disabled bg-light' : '' }}>
+                                        {{ !$isEditable ? 'disabled bg-light' : '' }}>
                                     
+                      
                                     <option value="user" {{ $user->role == 'user' ? 'selected' : '' }}>User (Staff)</option>
                                     <option value="recruit" {{ $user->role == 'recruit' ? 'selected' : '' }}>Recruit</option>
                                     <option value="showroom_sales" {{ $user->role == 'showroom_sales' ? 'selected' : '' }}>Showroom Sales</option>
                                     <option value="business_sales" {{ $user->role == 'business_sales' ? 'selected' : '' }}>Business Sales</option>
                                     
-                                    <option value="finance" {{ $user->role == 'finance' ? 'selected' : '' }}>Finance</option>
-                                    <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Administrator</option>
+                                   
+                                    @if(auth()->user()->role === 'admin')
+                                        <option value="finance" {{ $user->role == 'finance' ? 'selected' : '' }}>Finance</option>
+                                        <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Administrator</option>
+                                    @elseif($user->role == 'finance') 
+                                      
+                                        <option value="finance" selected>Finance</option>
+                                    @endif
                                 </select>
                             </div>
 
                             
                             <div class="col-6 mb-3">
                                 <label class="form-label small fw-bold text-uppercase text-muted">Status</label>
-                                <select name="status" class="form-select shadow-sm border-success">
+                                <select name="status" class="form-select shadow-sm border-success" {{ !$isEditable ? 'disabled' : '' }}>
                                     <option value="1" {{ $user->is_on_duty ? 'selected' : '' }}>🟢 On Duty</option>
                                     <option value="0" {{ !$user->is_on_duty ? 'selected' : '' }}>⚪ Off Duty</option>
                                 </select>
@@ -295,7 +317,7 @@
                         <hr class="text-muted opacity-25">
 
                         
-                        @if(auth()->user()->role === 'admin')
+                        @if($isEditable)
                             <div class="mb-1">
                                 <label class="form-label small fw-bold text-danger">Reset Password</label>
                                 <div class="input-group shadow-sm">
@@ -305,14 +327,16 @@
                             </div>
                         @else
                             <div class="alert alert-light border text-center small text-muted mb-0">
-                                <i class="fas fa-lock me-1"></i> Admin Only.
+                                <i class="fas fa-lock me-1"></i> Restricted.
                             </div>
                         @endif
 
                     </div>
                     <div class="modal-footer border-top-0 pt-0 pb-3 bg-light bg-opacity-50">
                         <button type="button" class="btn btn-link text-muted no-decoration fw-bold" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-dark px-4 rounded-3 shadow-sm">Simpan</button>
+                        @if($isEditable)
+                            <button type="submit" class="btn btn-dark px-4 rounded-3 shadow-sm">Simpan</button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -321,6 +345,7 @@
     @endforeach
 
     
+ 
     <div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -357,28 +382,34 @@
                         <div class="mb-1">
                             <label class="form-label small fw-bold text-uppercase text-muted">Role</label>
                             
-                            @if(auth()->user()->role === 'admin')
+                            
+                            @if(in_array(auth()->user()->role, ['admin', 'finance']))
                                 <select name="role" class="form-select shadow-sm" required>
                                     <option value="" disabled selected>-- Select Role --</option>
                                     
                                     <optgroup label="Sales Team">
-                                        <option value="user">User / Staff</option>
+                                         
+                                        @if(auth()->user()->role === 'admin')
+                                            <option value="user">User / Staff</option>
+                                        @endif
+
+                                      
                                         <option value="recruit">Recruit</option>
                                         <option value="showroom_sales">Showroom Sales</option>
                                         <option value="business_sales">Business Sales</option>
                                     </optgroup>
                                     
-                                    <optgroup label="Management">
-                                        <option value="finance">Finance</option>
-                                        <option value="admin">Administrator</option>
-                                    </optgroup>
+                          
+                                    @if(auth()->user()->role === 'admin')
+                                        <optgroup label="Management">
+                                            <option value="finance">Finance</option>
+                                            <option value="admin">Administrator</option>
+                                        </optgroup>
+                                    @endif
                                 </select>
                             @else
-                                <input type="text" class="form-control bg-white text-muted shadow-sm" value="Sales (User)" disabled>
-                                <input type="hidden" name="role" value="user">
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> Finance can only add Sales/Regular Users.
-                                </small>
+                              
+                                <input type="text" class="form-control bg-white text-muted shadow-sm" value="Restricted" disabled>
                             @endif
                         </div>
                     </div>

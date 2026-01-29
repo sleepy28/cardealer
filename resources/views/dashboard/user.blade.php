@@ -382,7 +382,7 @@
             statusIcon.attr('class', 'fa-solid fa-spinner fa-spin fa-lg me-3 text-dark');
 
             $.ajax({
-                url: "{{ route('duty.toggle') }}",
+                url: "{{ route('duty.toggle', [], false) }}",
                 type: "POST",
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(response) {

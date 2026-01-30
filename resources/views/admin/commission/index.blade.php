@@ -149,7 +149,7 @@
             document.getElementById('modalAmount').value = amount;
             
            
-            var urlTemplate = "{{ route('admin.commission.update', ':id') }}";
+            var urlTemplate = "{{ route('admin.commission.update', ':id', false) }}";
             var finalUrl = urlTemplate.replace(':id', id);
             
             document.getElementById('editForm').action = finalUrl;

@@ -13,6 +13,7 @@ use App\Http\Controllers\AdminSalaryController;
 use App\Http\Controllers\AdminCommissionController;
 use App\Http\Controllers\SalarySettingController;
 use App\Http\Controllers\SalaryReportController;
+use App\Http\Controllers\ResignationController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -29,6 +30,13 @@ Route::middleware('guest')->group(function () {
 
 
 Route::middleware(['auth', 'admin'])->group(function () {
+
+// Route untuk Admin mengelola Resignation
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/resignations', [App\Http\Controllers\AdminResignationController::class, 'index'])->name('resignation.index');
+    Route::put('/resignations/{id}/approve', [App\Http\Controllers\AdminResignationController::class, 'approve'])->name('resignation.approve');
+    Route::put('/resignations/{id}/reject', [App\Http\Controllers\AdminResignationController::class, 'reject'])->name('resignation.reject');
+});
     Route::post('/admin/salary/pay', [App\Http\Controllers\AdminSalaryController::class, 'markAsPaid'])->name('admin.salary.pay');
     
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -60,7 +68,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     
-    
+
+
+// ... route lainnya
+
+Route::middleware(['auth'])->group(function () {
+    // Tambahkan baris ini di bawah route resignation yang sudah ada
+Route::delete('/resignation/cancel', [App\Http\Controllers\ResignationController::class, 'destroy'])->name('resignation.destroy');
+    Route::get('/resignation', [ResignationController::class, 'create'])->name('resignation.create');
+    Route::post('/resignation', [ResignationController::class, 'store'])->name('resignation.store');
+});
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard');
     Route::get('/duty-salary', [DashboardController::class, 'dutySalary'])->name('dashboard.duty-salary');
     

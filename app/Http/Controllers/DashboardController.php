@@ -59,7 +59,7 @@ class DashboardController extends Controller
             $idx = Carbon::parse($sale->created_at)->dayOfWeekIso - 1;
             $grafikInvoice[$idx] += $sale->sale_price;
         }
-        // ==========================================
+ 
 
 
         $data = [
@@ -82,9 +82,8 @@ class DashboardController extends Controller
         return view('dashboard.user', compact('data'));
     }
  
-    public function toggleDuty(Request $request)
+   public function toggleDuty(Request $request)
     {
-        
         $user = Auth::user();
         $now = Carbon::now(); 
 
@@ -94,21 +93,71 @@ class DashboardController extends Controller
                         ->latest()
                         ->first();
             
+            $totalDurationToDisplay = 0;
+
             if ($session) {
                 $startTime = Carbon::parse($session->start_time);
-                $duration = $startTime->diffInMinutes($now) / 60; 
+                
+        
+                $totalDurationToDisplay = $startTime->diffInSeconds($now) / 3600; 
 
-                $session->update([
-                    'end_time' => $now,
-                    'duration_hours' => $duration
-                ]);
+        
+                if ($startTime->isSameDay($now)) {
+                    $session->update([
+                        'end_time' => $now,
+                        'duration_hours' => $totalDurationToDisplay
+                    ]);
+                } 
+        
+                else {
+                    $currentStart = $startTime->copy();
+
+         
+                    $endOfFirstDay = $currentStart->copy()->endOfDay();
+                    $durationFirstDay = $currentStart->diffInSeconds($endOfFirstDay) / 3600;
+
+                    $session->update([
+                        'end_time' => $endOfFirstDay,
+                        'duration_hours' => $durationFirstDay
+                    ]);
+
+            
+                    $currentStart = $endOfFirstDay->addSecond();
+
+               
+                    while (!$currentStart->isSameDay($now)) {
+                        $endOfDay = $currentStart->copy()->endOfDay();
+                        $duration = $currentStart->diffInSeconds($endOfDay) / 3600;
+
+                        DutySession::create([
+                            'user_id' => $user->id,
+                            'start_time' => $currentStart,
+                            'end_time' => $endOfDay,
+                            'duration_hours' => $duration
+                        ]);
+
+                        $currentStart = $endOfDay->addSecond();
+                    }
+
+               
+                    $durationLastDay = $currentStart->diffInSeconds($now) / 3600;
+                    if ($durationLastDay > 0) {
+                        DutySession::create([
+                            'user_id' => $user->id,
+                            'start_time' => $currentStart,
+                            'end_time' => $now,
+                            'duration_hours' => $durationLastDay
+                        ]);
+                    }
+                }
             }
             
             $user->update(['is_on_duty' => false]);
             
+     
             return response()->json([
                 'status' => 'off', 
-                'message' => 'Anda telah Off-Duty. Durasi: ' . number_format($duration ?? 0, 2) . ' Jam'
+                'message' => 'Anda telah Off-Duty. Durasi: ' . number_format($totalDurationToDisplay, 2) . ' Jam'
             ]);
 
         } else {
@@ -121,25 +170,7 @@ class DashboardController extends Controller
 
             return response()->json(['status' => 'on', 'message' => 'Anda sekarang On-Duty!']);
         }
-        
     }
-    public function history(Request $request)
-    {
-        $user = Auth::user();
-        
-    
-        $startDate = $request->input('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
- 
-        $history = DutySession::where('user_id', $user->id)
-                              ->whereDate('start_time', '>=', $startDate)
-                              ->whereDate('start_time', '<=', $endDate)
-                              ->orderBy('start_time', 'desc')
-                              ->get();
- 
-        return view('dashboard.history', compact('history', 'startDate', 'endDate'));
-    }
-
      
 
 

@@ -10,12 +10,10 @@
         --text-secondary: #94a3b8;
     }
 
- 
     #sidebar-wrapper {
         font-family: 'Inter', sans-serif;
         width: var(--sidebar-width);
         
-    
         position: fixed;
         top: 0;
         bottom: 0;
@@ -42,7 +40,6 @@
     .nav-scroll::-webkit-scrollbar { width: 4px; }
     .nav-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 
-  
     .menu-label {
         font-size: 0.7rem;
         text-transform: uppercase;
@@ -62,7 +59,6 @@
         font-size: 0.95rem;
         border-radius: 8px;
         font-weight: 500;
- 
         transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         border-left: 3px solid transparent;
     }
@@ -73,7 +69,6 @@
         transition: transform 0.2s ease, color 0.2s ease;
     }
 
-   
     .nav-link-modern:hover {
         background-color: rgba(255, 255, 255, 0.08);
         color: #fff;
@@ -86,7 +81,6 @@
         transform: scale(1.15); 
     }
 
-   
     .nav-link-modern.active {
         background: linear-gradient(90deg, rgba(59,130,246,0.15), transparent);
         color: #60a5fa;
@@ -97,7 +91,6 @@
         color: #60a5fa;
     }
 
-    
     .mobile-header {
         display: none;
         position: fixed;
@@ -138,7 +131,6 @@
         .sidebar-close-btn { display: none !important; }
     }
 
- 
     .user-profile {
         padding: 16px;
         background: rgba(0,0,0,0.2);
@@ -147,9 +139,6 @@
     }
 </style>
 
-
-
- 
 <div class="mobile-header">
     <div class="d-flex align-items-center gap-2">
         <img src="{{ asset('img/logonusa.png') }}" alt="Logo" style="height: 30px; width: auto;">
@@ -161,9 +150,7 @@
 </div>
 <div class="mobile-spacer"></div>
 
- 
 <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-
 
 <nav id="sidebar-wrapper">
     
@@ -180,8 +167,8 @@
         </button>
     </div>
 
-    
     <div class="nav-scroll">
+        {{-- ================= ADMIN MENU ================= --}}
         @if(Auth::user()->role === 'admin')
     
             <div class="menu-label">Admin Control</div>
@@ -196,6 +183,10 @@
             </a>
             <a href="{{ route('admin.permits.index') }}" class="nav-link-modern {{ request()->routeIs('admin.permits.*') ? 'active' : '' }}">
                 <i class="fas fa-envelope-open-text"></i> <span>Permit Approval</span>
+            </a>
+            {{-- Menu Approval Resignation untuk Admin --}}
+            <a href="{{ route('admin.resignation.index') }}" class="nav-link-modern {{ request()->routeIs('admin.resignation.*') ? 'active' : '' }}">
+                <i class="fas fa-user-times"></i> <span>Resignation Approval</span>
             </a>
 
             <div class="menu-label">Finance System</div>
@@ -212,6 +203,7 @@
                 <i class="fas fa-percent text-info"></i> <span>Master Komisi</span>
             </a>
 
+        {{-- ================= FINANCE MENU ================= --}}
         @elseif(Auth::user()->role === 'finance')
           
             <div class="menu-label">Main Menu</div>
@@ -239,6 +231,10 @@
             <a href="{{ route('admin.permits.index') }}" class="nav-link-modern {{ request()->routeIs('admin.permits.*') ? 'active' : '' }}">
                 <i class="fas fa-check-circle"></i> <span>Permit Approval</span>
             </a>
+            {{-- Menu Approval Resignation untuk Finance --}}
+            <a href="{{ route('admin.resignation.index') }}" class="nav-link-modern {{ request()->routeIs('admin.resignation.*') ? 'active' : '' }}">
+                <i class="fas fa-user-times"></i> <span>Resignation Approval</span>
+            </a>
             
             <a href="{{ route('admin.salary.index') }}" class="nav-link-modern {{ request()->routeIs('admin.salary.*') ? 'active' : '' }}">
                 <i class="fas fa-money-check-alt text-success"></i> <span>Payroll System</span>
@@ -248,6 +244,14 @@
                 <i class="fas fa-file-alt"></i> <span>Permits Application</span>
             </a>
 
+            {{-- Tombol Pengajuan Resignation Pribadi untuk Finance --}}
+            <div class="mt-4 px-2">
+                 <a href="{{ route('resignation.create') }}" class="nav-link-modern text-danger bg-danger bg-opacity-10 justify-content-center border border-danger border-opacity-25 {{ request()->routeIs('resignation.*') ? 'active' : '' }}">
+                    <i class="fas fa-sign-out-alt"></i> <span>Resignation</span>
+                </a>
+            </div>
+
+        {{-- ================= USER / SALES MENU ================= --}}
         @else 
         
             <div class="menu-label">Workspace</div>
@@ -271,18 +275,18 @@
             <a href="{{ route('permit.index') }}" class="nav-link-modern {{ request()->routeIs('permit.index') ? 'active' : '' }}">
                 <i class="fas fa-clipboard-list"></i> <span>Permit Application</span>
             </a>
-             <div class="mt-4 px-2">
-                 <a href="#" class="nav-link-modern text-danger bg-danger bg-opacity-10 justify-content-center border border-danger border-opacity-25">
+            
+            {{-- Tombol Pengajuan Resignation Pribadi untuk User --}}
+            <div class="mt-4 px-2">
+                 <a href="{{ route('resignation.create') }}" class="nav-link-modern text-danger bg-danger bg-opacity-10 justify-content-center border border-danger border-opacity-25 {{ request()->routeIs('resignation.*') ? 'active' : '' }}">
                     <i class="fas fa-sign-out-alt"></i> <span>Resignation</span>
                 </a>
             </div>
         @endif
     </div>
 
-  
     <div class="user-profile">
         <div class="d-flex align-items-center justify-content-between w-100">
-            
             
             <div class="dropup flex-grow-1" style="min-width: 0; margin-right: 10px;">
                 <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-white w-100" data-bs-toggle="dropdown">
@@ -316,7 +320,6 @@
                 </ul>
             </div>
 
-       
             <button id="themeToggle" class="theme-toggle-btn" title="Switch Theme">
                 <i class="fas fa-sun text-warning icon-sun"></i>
                 <i class="fas fa-moon text-white icon-moon"></i>

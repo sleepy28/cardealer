@@ -59,7 +59,7 @@ class DashboardController extends Controller
             $idx = Carbon::parse($sale->created_at)->dayOfWeekIso - 1;
             $grafikInvoice[$idx] += $sale->sale_price;
         }
- 
+        // ==========================================
 
 
         $data = [
@@ -83,94 +83,105 @@ class DashboardController extends Controller
     }
  
    public function toggleDuty(Request $request)
+{
+    $user = Auth::user();
+    $now = Carbon::now(); 
+
+    if ($user->is_on_duty) {
+        $session = DutySession::where('user_id', $user->id)
+                    ->whereNull('end_time')
+                    ->latest()
+                    ->first();
+        
+        $duration = 0;
+
+        if ($session) {
+            $startTime = Carbon::parse($session->start_time);
+            $duration = $startTime->diffInMinutes($now) / 60; 
+
+            $session->update([
+                'end_time' => $now,
+                'duration_hours' => $duration
+            ]);
+        }
+        
+        $user->update(['is_on_duty' => false]);
+
+        $dJam    = floor($duration);
+        $dMenit  = round(($duration - $dJam) * 60);
+        $durasiStr = $dJam > 0 ? "{$dJam} Jam {$dMenit} Menit" : "{$dMenit} Menit";
+
+        $this->sendDiscordWebhook([
+            'embeds' => [[
+                'title'       => '🔴 OFF DUTY',
+                'description' => "**{$user->name}** NOW OFF DUTY",
+                'color'       => 15158332,
+                'fields'      => [
+                    ['name' => '👤 Name',    'value' => $user->name,                'inline' => true],
+                    ['name' => '🎭 Role',    'value' => ucfirst($user->role),        'inline' => true],
+                    ['name' => '⏱️ Duration',  'value' => $durasiStr,                 'inline' => false],
+                    ['name' => '🕐 END', 'value' => $now->format('d M Y, H:i'), 'inline' => false],
+                ],
+                'footer'    => ['text' => ' =====       ngehehehe      =====      '],
+                'timestamp' => $now->toIso8601String(),
+            ]]
+        ]);
+        
+        return response()->json([
+            'status' => 'off', 
+            'message' => 'Anda telah Off-Duty. Durasi: ' . number_format($duration, 2) . ' Jam'
+        ]);
+
+    } else {
+        DutySession::create([
+            'user_id' => $user->id,
+            'start_time' => $now,
+        ]);
+
+        $user->update(['is_on_duty' => true]);
+
+        $this->sendDiscordWebhook([
+            'embeds' => [[
+                'title'       => '🟢 ON DUTY',
+                'description' => "**{$user->name}** NOW ON DUTY",
+                'color'       => 3066993,
+                'fields'      => [
+                    ['name' => '👤 Name',  'value' => $user->name,                'inline' => true],
+                    ['name' => '🎭 Role',  'value' => ucfirst($user->role),        'inline' => true],
+                    ['name' => '🕐 Start', 'value' => $now->format('d M Y, H:i'), 'inline' => false],
+                ],
+                'footer'    => ['text' => ' =====       ngehehehe      =====      '],
+                'timestamp' => $now->toIso8601String(),
+            ]]
+        ]);
+
+        return response()->json(['status' => 'on', 'message' => 'Anda sekarang On-Duty!']);
+    }
+}
+
+private function sendDiscordWebhook(array $payload): void
+{
+    $webhookUrl = 'https://discord.com/api/webhooks/1496709512256819200/Ve98YO875P2kCzjcz2nMTZ6MkiK-N1UG35MIWUjlY9Ock1xI6uFY8egA5bDajSwsAVJB';
+
+    \Illuminate\Support\Facades\Http::post($webhookUrl, $payload);
+}
+    public function history(Request $request)
     {
         $user = Auth::user();
-        $now = Carbon::now(); 
-
-        if ($user->is_on_duty) {
-            $session = DutySession::where('user_id', $user->id)
-                        ->whereNull('end_time')
-                        ->latest()
-                        ->first();
-            
-            $totalDurationToDisplay = 0;
-
-            if ($session) {
-                $startTime = Carbon::parse($session->start_time);
-                
         
-                $totalDurationToDisplay = $startTime->diffInSeconds($now) / 3600; 
-
-        
-                if ($startTime->isSameDay($now)) {
-                    $session->update([
-                        'end_time' => $now,
-                        'duration_hours' => $totalDurationToDisplay
-                    ]);
-                } 
-        
-                else {
-                    $currentStart = $startTime->copy();
-
-         
-                    $endOfFirstDay = $currentStart->copy()->endOfDay();
-                    $durationFirstDay = $currentStart->diffInSeconds($endOfFirstDay) / 3600;
-
-                    $session->update([
-                        'end_time' => $endOfFirstDay,
-                        'duration_hours' => $durationFirstDay
-                    ]);
-
-            
-                    $currentStart = $endOfFirstDay->addSecond();
-
-               
-                    while (!$currentStart->isSameDay($now)) {
-                        $endOfDay = $currentStart->copy()->endOfDay();
-                        $duration = $currentStart->diffInSeconds($endOfDay) / 3600;
-
-                        DutySession::create([
-                            'user_id' => $user->id,
-                            'start_time' => $currentStart,
-                            'end_time' => $endOfDay,
-                            'duration_hours' => $duration
-                        ]);
-
-                        $currentStart = $endOfDay->addSecond();
-                    }
-
-               
-                    $durationLastDay = $currentStart->diffInSeconds($now) / 3600;
-                    if ($durationLastDay > 0) {
-                        DutySession::create([
-                            'user_id' => $user->id,
-                            'start_time' => $currentStart,
-                            'end_time' => $now,
-                            'duration_hours' => $durationLastDay
-                        ]);
-                    }
-                }
-            }
-            
-            $user->update(['is_on_duty' => false]);
-            
-     
-            return response()->json([
-                'status' => 'off', 
-                'message' => 'Anda telah Off-Duty. Durasi: ' . number_format($totalDurationToDisplay, 2) . ' Jam'
-            ]);
-
-        } else {
-            DutySession::create([
-                'user_id' => $user->id,
-                'start_time' => $now,
-            ]);
-
-            $user->update(['is_on_duty' => true]);
-
-            return response()->json(['status' => 'on', 'message' => 'Anda sekarang On-Duty!']);
-        }
+    
+        $startDate = $request->input('start_date', Carbon::now()->subDays(30)->format('Y-m-d'));
+        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
+ 
+        $history = DutySession::where('user_id', $user->id)
+                              ->whereDate('start_time', '>=', $startDate)
+                              ->whereDate('start_time', '<=', $endDate)
+                              ->orderBy('start_time', 'desc')
+                              ->get();
+ 
+        return view('dashboard.history', compact('history', 'startDate', 'endDate'));
     }
+
      
 
 

@@ -137,10 +137,133 @@
     
     .table-modern tbody tr:nth-child(n+11) { animation-delay: 1.5s; }
 
+    /* Edit button styles */
+    .btn-edit-leaderboard {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #667eea;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-edit-leaderboard:hover {
+        background: #667eea;
+        color: #fff;
+        border-color: #667eea;
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Modal custom styles */
+    .modal-leaderboard .modal-content {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal-leaderboard .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+        padding: 1.25rem 1.5rem;
+    }
+    .modal-leaderboard .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+    }
+    .modal-leaderboard .modal-body {
+        padding: 1.5rem;
+    }
+    .modal-leaderboard .form-label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #4a5568;
+        letter-spacing: 0.5px;
+    }
+    .modal-leaderboard .form-control {
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.6rem 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .modal-leaderboard .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+    .modal-leaderboard .modal-footer {
+        border-top: 1px solid #f0f0f0;
+        padding: 1rem 1.5rem;
+    }
+    .modal-leaderboard .btn-save-leaderboard {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 0.55rem 1.5rem;
+        font-weight: 600;
+        color: #fff;
+        transition: all 0.2s ease;
+    }
+    .modal-leaderboard .btn-save-leaderboard:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Toast notification */
+    .toast-leaderboard {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+    }
+
 </style>
 
 <div class="container-fluid py-4">
     
+    {{-- Success/Error Flash Messages --}}
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 rounded-3 mb-4" role="alert" 
+         style="animation: fadeInUp 0.4s ease-out;">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid fa-circle-check me-2 fs-5"></i>
+            <strong>{{ session('success') }}</strong>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 rounded-3 mb-4" role="alert"
+         style="animation: fadeInUp 0.4s ease-out;">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid fa-circle-xmark me-2 fs-5"></i>
+            <strong>{{ session('error') }}</strong>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 rounded-3 mb-4" role="alert"
+         style="animation: fadeInUp 0.4s ease-out;">
+        <div class="d-flex align-items-center mb-1">
+            <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i>
+            <strong>Validation Error</strong>
+        </div>
+        <ul class="mb-0 ps-3">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
     
     <div class="d-flex justify-content-between align-items-center mb-4 animate-entry">
         <div>
@@ -272,6 +395,9 @@
                             <th class="text-center text-secondary opacity-7">
                                 <small>LIFETIME</small><br>Sales
                             </th>
+                            @if(in_array(Auth::user()->role, ['admin', 'finance']))
+                            <th class="text-center" style="width: 5%;">Action</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -337,6 +463,23 @@
                             <td class="text-center text-muted fw-bold text-sm">
                                 {{ $emp->lifetime_sales ?? 0 }}
                             </td>
+
+                            @if(in_array(Auth::user()->role, ['admin', 'finance']))
+                            <td class="text-center">
+                                <button type="button" 
+                                        class="btn-edit-leaderboard" 
+                                        title="Edit {{ $emp->name }}"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editLeaderboardModal"
+                                        data-emp-id="{{ $emp->id }}"
+                                        data-emp-name="{{ $emp->name }}"
+                                        data-emp-weekly-duty="{{ $emp->weekly_duty_hours ?? 0 }}"
+                                        data-emp-weekly-sales="{{ $emp->weekly_sales ?? 0 }}"
+                                        data-emp-lifetime-sales="{{ $emp->lifetime_sales ?? 0 }}">
+                                    <i class="fa-solid fa-pen-to-square" style="font-size: 0.8rem;"></i>
+                                </button>
+                            </td>
+                            @endif
                         </tr>
                         @endforeach
                     </tbody>
@@ -345,4 +488,123 @@
         </div>
     </div>
 </div>
+
+{{-- Edit Leaderboard Modal --}}
+@if(in_array(Auth::user()->role, ['admin', 'finance']))
+<div class="modal fade modal-leaderboard" id="editLeaderboardModal" tabindex="-1" aria-labelledby="editLeaderboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="editLeaderboardModalLabel">
+                        <i class="fa-solid fa-pen-to-square me-2"></i>Edit Leaderboard
+                    </h5>
+                    <small class="opacity-75" id="editModalSubtitle">Employee Name</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editLeaderboardForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_weekly_duty_hours" class="form-label">
+                            <i class="fa-solid fa-hourglass-half me-1 text-primary"></i> Weekly Duty Time (hours)
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="edit_weekly_duty_hours" 
+                               name="weekly_duty_hours" 
+                               step="0.01" 
+                               min="0" 
+                               required
+                               placeholder="e.g. 8.5">
+                        <div class="form-text text-muted">
+                            <small>Enter total hours (e.g. 2.5 = 2 Jam 30 Menit)</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_weekly_sales" class="form-label">
+                            <i class="fa-solid fa-car me-1 text-success"></i> Weekly Sales (units)
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="edit_weekly_sales" 
+                               name="weekly_sales" 
+                               min="0" 
+                               step="1"
+                               required
+                               placeholder="e.g. 3">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_lifetime_sales" class="form-label">
+                            <i class="fa-solid fa-chart-line me-1 text-warning"></i> Lifetime Sales (total units)
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="edit_lifetime_sales" 
+                               name="lifetime_sales" 
+                               min="0" 
+                               step="1"
+                               required
+                               placeholder="e.g. 25">
+                        <div class="form-text text-muted">
+                            <small>Must be equal or greater than weekly sales.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-save-leaderboard">
+                        <i class="fa-solid fa-check me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = document.getElementById('editLeaderboardModal');
+    
+    editModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        
+        const empId           = button.getAttribute('data-emp-id');
+        const empName         = button.getAttribute('data-emp-name');
+        const empWeeklyDuty   = button.getAttribute('data-emp-weekly-duty');
+        const empWeeklySales  = button.getAttribute('data-emp-weekly-sales');
+        const empLifetimeSales = button.getAttribute('data-emp-lifetime-sales');
+
+        // Update modal title
+        document.getElementById('editModalSubtitle').textContent = empName;
+
+        // Update form action
+        document.getElementById('editLeaderboardForm').action = '/leaderboard/' + empId;
+
+        // Populate fields
+        document.getElementById('edit_weekly_duty_hours').value = parseFloat(empWeeklyDuty).toFixed(2);
+        document.getElementById('edit_weekly_sales').value = parseInt(empWeeklySales);
+        document.getElementById('edit_lifetime_sales').value = parseInt(empLifetimeSales);
+    });
+
+    // Validate lifetime >= weekly on submit
+    document.getElementById('editLeaderboardForm').addEventListener('submit', function(e) {
+        const weekly = parseInt(document.getElementById('edit_weekly_sales').value) || 0;
+        const lifetime = parseInt(document.getElementById('edit_lifetime_sales').value) || 0;
+
+        if (lifetime < weekly) {
+            e.preventDefault();
+            alert('Lifetime sales cannot be less than weekly sales.');
+            document.getElementById('edit_lifetime_sales').focus();
+            return false;
+        }
+    });
+});
+</script>
+@endif
+
 @endsection

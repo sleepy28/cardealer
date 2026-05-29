@@ -86,4 +86,15 @@ class SaleController extends Controller
 
         return redirect()->back()->with('success', 'Penjualan berhasil dicatat! Komisi: $' . number_format($commissionAmount));
     }
+
+    public function destroy($id)
+    {
+        try {
+            $sale = Sale::findOrFail($id);
+            $sale->delete();
+            return response()->json(['success' => true, 'message' => 'Data berhasil dihapus']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Gagal menghapus data: ' . $e->getMessage()], 500);
+        }
+    }
 }

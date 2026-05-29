@@ -58,6 +58,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     
     Route::get('/admin/commission', [AdminCommissionController::class, 'index'])->name('admin.commission.index');
     Route::put('/admin/commission/{id}', [AdminCommissionController::class, 'update'])->name('admin.commission.update');
+    
+    // Delete sales (accessible by admin and finance)
+    Route::delete('/admin/sales/{id}', [SaleController::class, 'destroy'])->name('admin.sales.destroy');
 });
 
 

@@ -152,6 +152,74 @@
             });
         @endif
 
+        // Handle Delete Sale
+        $('.btn-delete-sale').click(function() {
+            var saleId = $(this).data('id');
+            var row = $(this).closest('tr');
+            
+            Swal.fire({
+                title: 'Hapus data penjualan?',
+                text: "Data yang dihapus tidak dapat dikembalikan!",
+                icon: 'warning',
+                background: '#1e293b',
+                color: '#fff',
+                showCancelButton: true,
+                confirmButtonColor: '#1e293b',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Ya, Hapus Permanen!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/admin/sales/' + saleId,
+                        type: 'DELETE',
+                        data: {
+                            "_token": "{{ csrf_token() }}"
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Terhapus!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    background: '#1e293b',
+                                    color: '#fff',
+                                    confirmButtonColor: '#3b82f6',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    row.fadeOut(400, function() {
+                                        $(this).remove();
+                                    });
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Gagal!',
+                                    text: response.message,
+                                    icon: 'error',
+                                    background: '#1e293b',
+                                    color: '#fff',
+                                    confirmButtonColor: '#ef4444',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Terjadi kesalahan sistem.',
+                                icon: 'error',
+                                background: '#1e293b',
+                                color: '#fff',
+                                confirmButtonColor: '#ef4444',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                }
+            });
+        });
     });
 </script>
 @endpush
@@ -203,7 +271,8 @@
                                     <th>salesman</th>
                                     <th>Vehicle</th>
                                     <th>Invoice</th>
-                                    <th class="pe-4 text-end">Commission</th>
+                                    <th class="text-end">Commission</th>
+                                    <th class="pe-4 text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -227,13 +296,18 @@
                                         </div>
                                     </td>
                                     <td class="fw-bold text-secondary small">${{ number_format($sale->sale_price) }}</td>
-                                    <td class="pe-4 text-end">
+                                    <td class="text-end">
                                         <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">+ ${{ number_format($sale->commission) }}</span>
+                                    </td>
+                                    <td class="pe-4 text-center">
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0 m-0 btn-delete-sale" data-id="{{ $sale->id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">Belum ada penjualan.</td>
+                                    <td colspan="6" class="text-center py-5 text-muted">Belum ada penjualan.</td>
                                 </tr>
                                 @endforelse
                             </tbody>

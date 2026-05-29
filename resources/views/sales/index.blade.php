@@ -256,6 +256,9 @@
                                     <th class="py-3 text-secondary text-xxs font-weight-bolder text-uppercase opacity-7">Customer</th>
                                     <th class="py-3 text-secondary text-xxs font-weight-bolder text-uppercase opacity-7 text-end">Price</th>
                                     <th class="pe-4 py-3 text-secondary text-xxs font-weight-bolder text-uppercase opacity-7 text-end">Comm.</th>
+                                    @if(in_array(auth()->user()->role, ['admin', 'finance']))
+                                    <th class="py-3 text-secondary text-xxs font-weight-bolder text-uppercase opacity-7 text-center">Action</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -305,10 +308,21 @@
                                             +${{ number_format($sale->commission) }}
                                         </span>
                                     </td>
+                                    @if(in_array(auth()->user()->role, ['admin', 'finance']))
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0 m-0 btn-delete-sale" data-id="{{ $sale->id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                    @endif
                                 </tr>
                                 @empty
                                 <tr>
+                                    @if(in_array(auth()->user()->role, ['admin', 'finance']))
+                                    <td colspan="7" class="text-center py-5">
+                                    @else
                                     <td colspan="6" class="text-center py-5">
+                                    @endif
                                         <div class="d-flex flex-column align-items-center justify-content-center opacity-50">
                                             <div class="bg-light rounded-circle p-4 mb-3">
                                                 <i class="fas fa-folder-open fa-2x text-muted"></i>
@@ -327,3 +341,79 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        @if(in_array(auth()->user()->role, ['admin', 'finance']))
+        $('.btn-delete-sale').click(function() {
+            var saleId = $(this).data('id');
+            var row = $(this).closest('tr');
+            
+            Swal.fire({
+                title: 'Hapus data penjualan?',
+                text: "Data yang dihapus tidak dapat dikembalikan!",
+                icon: 'warning',
+                background: '#1e293b',
+                color: '#fff',
+                showCancelButton: true,
+                confirmButtonColor: '#1e293b',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Ya, Hapus Permanen!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/admin/sales/' + saleId,
+                        type: 'DELETE',
+                        data: {
+                            "_token": "{{ csrf_token() }}"
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Terhapus!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    background: '#1e293b',
+                                    color: '#fff',
+                                    confirmButtonColor: '#3b82f6',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    row.fadeOut(400, function() {
+                                        $(this).remove();
+                                    });
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Gagal!',
+                                    text: response.message,
+                                    icon: 'error',
+                                    background: '#1e293b',
+                                    color: '#fff',
+                                    confirmButtonColor: '#ef4444',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Terjadi kesalahan sistem.',
+                                icon: 'error',
+                                background: '#1e293b',
+                                color: '#fff',
+                                confirmButtonColor: '#ef4444',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        @endif
+    });
+</script>
+@endpush
